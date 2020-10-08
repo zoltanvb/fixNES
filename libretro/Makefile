@@ -43,7 +43,7 @@ endif
 ifeq ($(platform), unix)
 	TARGET := $(TARGET_NAME)_libretro.so
 	fpic := -fPIC
-	SHARED := -shared -Wl,-version-script=$(version_script)
+	SHARED := -shared -Wl,-version-script=$(version_script) -lm
 
 # OS X
 else ifeq ($(platform), osx)
@@ -294,7 +294,7 @@ else
 	CC = gcc
 	CXX = g++
 	SHARED := -shared -static-libgcc -static-libstdc++ -Wl,-no-undefined -Wl,-version-script=$(version_script)
-   LDFLAGS := -lws2_32
+   LDFLAGS := -lm -lws2_32
 
 endif
 
