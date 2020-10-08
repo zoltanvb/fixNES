@@ -34,27 +34,6 @@ libretro-build-windows-x64:
     MAKEFILE_PATH: libretro
     MAKEFILE: Makefile
     
-# Android
-android-armeabi-v7a:
-  extends:
-    - .core-defs
-    - .libretro-android-jni-armeabi-v7a
-
-android-arm64-v8a:
-  extends:
-    - .core-defs
-    - .libretro-android-jni-arm64-v8a
-
-android-x86_64:
-  extends:
-    - .core-defs
-    - .libretro-android-jni-x86_64
-    
-android-x86:
-  extends:
-    - .core-defs
-    - .libretro-android-jni-x86
-
 # Static
 libretro-build-vita:
   extends:
