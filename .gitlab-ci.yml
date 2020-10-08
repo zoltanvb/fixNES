@@ -1,6 +1,6 @@
 .core-defs:
   variables:
-    CORENAME: vbam
+    CORENAME: fixnes
 
 include:
   - template: Jobs/Code-Quality.gitlab-ci.yml
