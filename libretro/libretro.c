@@ -35,6 +35,8 @@ static retro_input_state_t input_state_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
 static retro_environment_t environ_cb;
 
+static bool libretro_supports_bitmasks = false;
+
 int nesEmuLoadGame(const char* filename);
 void nesEmuMainLoop(void);
 void nesEmuDeinit(void);
@@ -75,10 +77,14 @@ void retro_init(void)
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
       log_cb = log.log;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
+      libretro_supports_bitmasks = true;
 }
 
-void retro_deinit()
+void retro_deinit(void)
 {
+   libretro_supports_bitmasks = false;
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -107,7 +113,8 @@ void retro_set_input_state(retro_input_state_t cb)
 void retro_set_controller_port_device(unsigned port, unsigned device) {}
 
 extern bool nesEmuNSFPlayback;
-void retro_reset()
+
+void retro_reset(void)
 {
    //will be used at the end of a frame
    if(!nesEmuNSFPlayback)
@@ -128,7 +135,7 @@ bool retro_unserialize(const void *data, size_t size)
 {
    return false;
 }
-void retro_cheat_reset()
+void retro_cheat_reset(void)
 {
 }
 
@@ -188,12 +195,12 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info *i
    return false;
 }
 
-void retro_unload_game()
+void retro_unload_game(void)
 {
    nesEmuDeinit();
 }
 
-unsigned retro_get_region()
+unsigned retro_get_region(void)
 {
    return nesPAL ? RETRO_REGION_PAL : RETRO_REGION_NTSC;
 }
@@ -250,7 +257,7 @@ size_t retro_get_memory_size(unsigned id)
    return 0;
 }
 
-int audioUpdate()
+int audioUpdate(void)
 {
    uint16_t* buffer_in = (uint16_t*)apuGetBuf();
    int samples = apuGetBufSize() / (2 * sizeof(uint16_t));
@@ -267,7 +274,8 @@ int audioUpdate()
 }
 
 static char disksysPath[4096];
-FILE *doOpenFDSBIOS()
+
+FILE *doOpenFDSBIOS(void)
 {
    const char *dir = NULL;
    if(!environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) || !dir)
@@ -278,20 +286,33 @@ FILE *doOpenFDSBIOS()
 }
 
 extern bool fdsSwitch;
-void retro_run()
+
+void retro_run(void)
 {
+   unsigned i;
+   int16_t joypad_bits;
+
    input_poll_cb();
 
-   inValReads[BUTTON_A]      = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
-   inValReads[BUTTON_B]      = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
-   inValReads[BUTTON_SELECT] = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
-   inValReads[BUTTON_START]  = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
-   inValReads[BUTTON_RIGHT]  = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
-   inValReads[BUTTON_LEFT]   = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
-   inValReads[BUTTON_UP]     = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
-   inValReads[BUTTON_DOWN]   = !!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+   if (libretro_supports_bitmasks)
+      joypad_bits = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+   else
+   {
+      joypad_bits = 0;
+      for (i = 0; i < (RETRO_DEVICE_ID_JOYPAD_R3+1); i++)
+         joypad_bits |= input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, i) ? (1 << i) : 0;
+   }
 
-   if(input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L))
+   inValReads[BUTTON_A]      = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_A) ? 1 : 0;
+   inValReads[BUTTON_B]      = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_B) ? 1 : 0;
+   inValReads[BUTTON_SELECT] = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_SELECT) ? 1 : 0;
+   inValReads[BUTTON_START]  = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_START) ? 1 : 0;
+   inValReads[BUTTON_RIGHT]  = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT) ? 1 : 0;
+   inValReads[BUTTON_LEFT]   = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_LEFT) ? 1 : 0;
+   inValReads[BUTTON_UP]     = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_UP) ? 1 : 0;
+   inValReads[BUTTON_DOWN]   = joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_DOWN) ? 1 : 0;
+
+   if(joypad_bits & (1 << RETRO_DEVICE_ID_JOYPAD_L))
    {
       if(!inDiskSwitch)
       {
@@ -312,7 +333,7 @@ void retro_run()
    apuUpdate();
 }
 
-unsigned retro_api_version()
+unsigned retro_api_version(void)
 {
    return RETRO_API_VERSION;
 }
