@@ -23,9 +23,6 @@ include:
     file: '/linux-x64.yml'
 
   ################################## CONSOLES ################################
-  # Nintendo WiiU
-  - project: 'libretro-infrastructure/ci-templates'
-    file: '/wiiu-static.yml'
 
 # Stages for building
 stages:
@@ -51,8 +48,3 @@ libretro-build-linux-x64:
     - .core-defs
 
 ################################### CONSOLES #################################
-# Nintendo WiiU
-libretro-build-wiiu:
-  extends:
-    - .libretro-wiiu-static-retroarch-master
-    - .core-defs
