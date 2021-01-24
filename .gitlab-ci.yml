@@ -32,6 +32,10 @@ include:
 
   ################################## CONSOLES ################################
 
+  # Nintendo Wii
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/wii-static.yml'
+
 # Stages for building
 stages:
   - build-prepare
@@ -68,3 +72,9 @@ libretro-build-linux-i686:
     - .core-defs
 
 ################################### CONSOLES #################################
+
+# Nintendo Wii
+libretro-build-wii:
+  extends:
+    - .libretro-wii-static-retroarch-master
+    - .core-defs
